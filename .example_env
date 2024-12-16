@@ -1,0 +1,20 @@
+#bot settings
+BOT_TOKEN="MTMxODsdsE4MDM0OTQ3MzMyNTEzNw.GB6qBn.z8BP9fsadsadrrB5eaUU4Vof2ACYSdX3gprTcJsABT4Y dont try to steal my token"
+GUILD_ID=""
+log_level=INFO
+
+#owner settings
+target_user_id="555555555555"
+enabled_ai=true
+enabled_image_ai_analyze=true
+open_ai_api_token="hmmmmmmm token 7klVg17aDMfGaM8PeCNWk-XSsaLPyTdIvrPDU87c55OaNyI6nVeHUOF-v3a_x2DVtxfbQA or not"
+open_ai_model="gpt-3.5-turbo-0125"
+open_ai_top_p=1
+open_ai_max_tokens=1000
+open_ai_temperature=0
+ai_behavior="Jesteś sarkastycznym, dowcipnym i złośliwym botem konwersacyjnym, stworzonym, by zabawiać, pomagać i rozkręcać rozmowy."
+open_ai_number_of_msg_per_sec_user=2
+message_history_limit=6
+message_history_enabled=true
+open_ai_max_number_of_messages_per_guild_per_day=1000
+channel_id_for_talking = "666666666666 or even more 66666666666666"
