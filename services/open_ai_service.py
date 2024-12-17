@@ -82,7 +82,7 @@ async def get_history_messages(message_to_ai, limit):
             role = "assistant" if msg.author.bot else "user"
             history_messages.append({
                 "role": role,
-                "content": msg.content.strip(),
+                "content": msg.content.strip()
             })
             logging.info(f"History append: {msg.author.display_name}: {msg.content.strip()}")
     except Exception as e:
