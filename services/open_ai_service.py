@@ -39,10 +39,28 @@ def get_tools():
     return tools
 
 
-async def get_messages_with_chat_history(ai_behaviour: str, message_to_ai):
+async def get_messages_with_chat_history_for_small_talk(message_to_ai):
     user_id_pattern = re.compile(r'<@!?1318180349473325137>')  # Remove bot ID
     cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
     message_history_enabled = os.getenv('message_history_enabled', 'false').lower() == 'true'
+    ai_behaviour = "Jesteś botem, który losowo reaguje na wiadomości, udzielając sarkastycznych odpowiedzi. Twoje odpowiedzi mają być krótkie, cięte i pełne humoru Pamiętaj, aby były to odpowiedzi, które mogą rozbawić, ale również delikatnie złośliwe."
+    limit = int(os.getenv('message_history_limit', 3))
+
+    messages = [{"role": "system", "content": ai_behaviour}]
+
+    if message_history_enabled:
+        messages.extend(await get_history_messages(message_to_ai, limit))
+
+    # Add current prompt
+    messages.append({"role": "user", "content": cleaned_content})
+    return messages
+
+
+async def get_messages_with_chat_history(message_to_ai):
+    user_id_pattern = re.compile(r'<@!?1318180349473325137>')  # Remove bot ID
+    cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
+    message_history_enabled = os.getenv('message_history_enabled', 'false').lower() == 'true'
+    ai_behaviour = os.getenv('ai_behavior')
     limit = int(os.getenv('message_history_limit', 5))
 
     messages = [{"role": "system", "content": ai_behaviour}]
@@ -71,6 +89,7 @@ async def get_history_messages(message_to_ai, limit):
             logging.info(f"History append: {msg.author.display_name}: {msg.content.strip()}")
     except Exception as e:
         logging.error(f"Error while fetching history: {e}")
+    history_messages.reverse()
     return history_messages
 
 
@@ -118,33 +137,6 @@ def can_guild_send_message(guild_id):
         return False
 
 
-async def add_history_to_message(message, limit):
-    if not isinstance(message.channel, (discord.TextChannel, discord.DMChannel, discord.Thread)):
-        logging.warning(f"Channel type does not support history: {type(message.channel)}")
-    else:
-        try:
-            history = []
-            async for msg in message.channel.history(limit=int(limit)):
-                # We are not adding message which invoked this method
-                if msg.id == message.id:
-                    continue
-                # We are not adding attachments to history, only texts if exist of course
-                if msg.content.strip():
-                    history.append(msg)
-            history.reverse()
-            history_response = "\nHistoria czatu:\n"
-            for msg in history:
-                history_response += f"{msg.content}\n"
-                logging.info(f"History: {msg.author.name}: {msg.content.strip()}")
-            current_question = f"Nowe pytanie: {message.content.strip()}."
-            prompt = f"{history_response}\n{current_question}"
-            message.content = prompt
-            return message
-        except Exception as e:
-            logging.error(f"Error while adding history to message: {e}")
-            return None
-
-
 def analyze_image(message_to_ai):
     attachment = message_to_ai.attachments[0]
     image_url = attachment.url
@@ -156,7 +148,7 @@ def analyze_image(message_to_ai):
     logging.info(f"Prompt before: {prompt}")
     if not prompt:
         prompt = (
-            f"Zabawnie interpretuj zdjecie. Badz sarkastyczny, złośliwy. Opisuj i nawiazuj do Śląska. ")
+            f"Zabawnie interpretuj zdjecie. Badz sarkastyczny, złośliwy. Opisuj i nawiazuj do Śląska. Maksymalnie 3 zdania.")
     logging.info(f"Prompt after: {prompt}")
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -177,14 +169,14 @@ def analyze_image(message_to_ai):
     return response.choices[0].message.content
 
 
-def small_talk_with_gpt(message):
+async def small_talk_with_gpt(message):
     openai.api_key = os.getenv('open_ai_api_token')
     openai_model = os.getenv('open_ai_model')
-    new_ai_behaviour = "Jesteś botem, który losowo reaguje na wiadomości, udzielając sarkastycznych odpowiedzi. Twoje odpowiedzi mają być krótkie, cięte i pełne humoru Pamiętaj, aby były to odpowiedzi, które mogą rozbawić, ale również delikatnie złośliwe."
+    prompt = await get_messages_with_chat_history_for_small_talk(message)
     response = openai.chat.completions.create(
-        messages=get_messages_with_chat_history(new_ai_behaviour, message),
+        messages=prompt,
         model=openai_model,
-        max_tokens=100,
+        max_tokens=70,
     )
     logging.info(f"Response from API OpenAI: {response}")
     logging.info(
@@ -205,6 +197,7 @@ class OpenAIService(commands.Cog):
     def gpt_35_turbo_instruct(self, message_to_ai):
         client = OpenAI(self.open_ai_token)
         response = client.completions.create(
+            # Not supporting chat history, yet!
             prompt=message_to_ai,
             model=self.model_ai,
             top_p=self.top_p,
@@ -216,11 +209,12 @@ class OpenAIService(commands.Cog):
             f"Costs: {response.usage.prompt_tokens}+{response.usage.completion_tokens}={response.usage.total_tokens}")
         return response.choices[0].text
 
-    def gpt_35_turbo_0125(self, message, is_tools_enabled):
+    async def gpt_35_turbo_0125(self, message, is_tools_enabled):
         openai.api_key = self.open_ai_token
         if is_tools_enabled is True:
+            prompt = await get_messages_with_chat_history(message)
             response = openai.chat.completions.create(
-                messages=get_messages_with_chat_history(self.ai_behaviour, message),
+                messages=prompt,
                 model=self.model_ai,
                 max_tokens=self.max_tokens,
                 tools=get_tools(),
@@ -234,7 +228,8 @@ class OpenAIService(commands.Cog):
             }
             message_response = response.choices[0].message
             if message_response.tool_calls:
-                messages = get_messages_with_chat_history(self.ai_behaviour, message)
+                prompt = await get_messages_with_chat_history(message)
+                messages = prompt
                 messages.append(message_response)
                 for tool_call in message_response.tool_calls:
                     function_name = tool_call.function.name
@@ -259,8 +254,9 @@ class OpenAIService(commands.Cog):
                     f"Costs (second call): {response.usage.prompt_tokens}+{response.usage.completion_tokens}={response.usage.total_tokens}")
                 return response.choices[0].message.content
         else:
+            prompt = await get_messages_with_chat_history(message)
             response = openai.chat.completions.create(
-                messages=get_messages_with_chat_history(self.ai_behaviour, message),
+                messages=prompt,
                 model=self.model_ai,
                 max_tokens=self.max_tokens,
             )
@@ -273,8 +269,6 @@ class OpenAIService(commands.Cog):
         # Send a message to the openAPI model and get a response back
         user_id_to_check = message.author.id
         guild_id = message.guild.id
-        message_history_limit = os.getenv('message_history_limit')
-        message_history_enabled = os.getenv('message_history_enabled')
         try:
             max_openai_length = 250
             if len(message.content.strip()) > max_openai_length:
@@ -293,7 +287,7 @@ class OpenAIService(commands.Cog):
             if GPT_35_TURBO_INSTRUCT in self.model_ai:
                 response_from_ai = self.gpt_35_turbo_instruct(message_to_ai)
             elif GPT_35_TURBO_ in self.model_ai:
-                response_from_ai = self.gpt_35_turbo_0125(message_to_ai, False)
+                response_from_ai = await self.gpt_35_turbo_0125(message_to_ai, False)
 
             return response_from_ai
         except Exception as e:
