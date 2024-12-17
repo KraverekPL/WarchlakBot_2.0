@@ -39,22 +39,39 @@ def get_tools():
     return tools
 
 
-def get_messages(ai_behaviour: str, message_to_ai):
-    user_id_pattern = re.compile(r'<@!?1315827200770969693>')  # remove bot id from msg
+async def get_messages_with_chat_history(ai_behaviour: str, message_to_ai):
+    user_id_pattern = re.compile(r'<@!?1318180349473325137>')  # Remove bot ID
     cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
-    # user_name = message_to_ai.author.display_name
-    prompt = cleaned_content
-    messages = [
-        {
-            "role": "system",
-            "content": ai_behaviour
-        },
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
+    message_history_enabled = os.getenv('message_history_enabled', 'false').lower() == 'true'
+    limit = int(os.getenv('message_history_limit', 5))
+
+    messages = [{"role": "system", "content": ai_behaviour}]
+
+    if message_history_enabled:
+        messages.extend(await get_history_messages(message_to_ai, limit))
+
+    # Add current prompt
+    messages.append({"role": "user", "content": cleaned_content})
     return messages
+
+
+async def get_history_messages(message_to_ai, limit):
+    history_messages = []
+    try:
+        async for msg in message_to_ai.channel.history(limit=limit):
+            if msg.id == message_to_ai.id or not msg.content.strip():
+                continue
+
+            role = "assistant" if msg.author.bot else "user"
+            history_messages.append({
+                "role": role,
+                "content": msg.content.strip(),
+                "name": msg.author.display_name
+            })
+            logging.info(f"History append: {msg.author.display_name}: {msg.content.strip()}")
+    except Exception as e:
+        logging.error(f"Error while fetching history: {e}")
+    return history_messages
 
 
 def can_user_send_message(user_id):
@@ -165,7 +182,7 @@ def small_talk_with_gpt(message):
     openai_model = os.getenv('open_ai_model')
     new_ai_behaviour = "Jesteś botem, który losowo reaguje na wiadomości, udzielając sarkastycznych odpowiedzi. Twoje odpowiedzi mają być krótkie, cięte i pełne humoru Pamiętaj, aby były to odpowiedzi, które mogą rozbawić, ale również delikatnie złośliwe."
     response = openai.chat.completions.create(
-        messages=get_messages(new_ai_behaviour, message),
+        messages=get_messages_with_chat_history(new_ai_behaviour, message),
         model=openai_model,
         max_tokens=100,
     )
@@ -203,7 +220,7 @@ class OpenAIService(commands.Cog):
         openai.api_key = self.open_ai_token
         if is_tools_enabled is True:
             response = openai.chat.completions.create(
-                messages=get_messages(self.ai_behaviour, message),
+                messages=get_messages_with_chat_history(self.ai_behaviour, message),
                 model=self.model_ai,
                 max_tokens=self.max_tokens,
                 tools=get_tools(),
@@ -217,7 +234,7 @@ class OpenAIService(commands.Cog):
             }
             message_response = response.choices[0].message
             if message_response.tool_calls:
-                messages = get_messages(self.ai_behaviour, message)
+                messages = get_messages_with_chat_history(self.ai_behaviour, message)
                 messages.append(message_response)
                 for tool_call in message_response.tool_calls:
                     function_name = tool_call.function.name
@@ -243,7 +260,7 @@ class OpenAIService(commands.Cog):
                 return response.choices[0].message.content
         else:
             response = openai.chat.completions.create(
-                messages=get_messages(self.ai_behaviour, message),
+                messages=get_messages_with_chat_history(self.ai_behaviour, message),
                 model=self.model_ai,
                 max_tokens=self.max_tokens,
             )
@@ -270,11 +287,7 @@ class OpenAIService(commands.Cog):
                 return "<Ziewa> Aaaa, hmm... Czas na małą drzemke aby akumulatory podładować. Będę niebawem."
 
             response_from_ai = None
-            # Add history to message (limit is stored in envs!)
-            if message_history_enabled:
-                message_to_ai = await add_history_to_message(message, message_history_limit)
-            else:
-                message_to_ai = message
+            message_to_ai = message
             logging.info(f"Message to AI: {message_to_ai}")
             # Call one of OpenAI API engines
             if GPT_35_TURBO_INSTRUCT in self.model_ai:

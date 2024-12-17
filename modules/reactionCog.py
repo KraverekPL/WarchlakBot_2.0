@@ -9,7 +9,7 @@ import re
 from discord.ext import commands
 
 from services.common import get_busy_response
-from services.open_ai_service import OpenAIService, analyze_image
+from services.open_ai_service import OpenAIService, analyze_image, small_talk_with_gpt
 
 
 async def send_response_in_parts(channel, response):
