@@ -6,7 +6,6 @@ import os
 import re
 import time
 
-import discord
 import openai
 from discord.ext import commands
 from openai import OpenAI
@@ -84,7 +83,6 @@ async def get_history_messages(message_to_ai, limit):
             history_messages.append({
                 "role": role,
                 "content": msg.content.strip(),
-                "name": msg.author.display_name
             })
             logging.info(f"History append: {msg.author.display_name}: {msg.content.strip()}")
     except Exception as e:
