@@ -145,6 +145,8 @@ def analyze_image(message_to_ai):
     )
     prompt = message_to_ai.content.strip()
     logging.info(f"Prompt before: {prompt}")
+    bot_mention_pattern = r"@\w+"  # Dopasowuje wzmianki w formacie @nazwa
+    prompt = re.sub(bot_mention_pattern, "", prompt).strip()
     if not prompt:
         prompt = (
             f"Zabawnie interpretuj zdjecie. Badz sarkastyczny, złośliwy. Maks 2 zdania.")
