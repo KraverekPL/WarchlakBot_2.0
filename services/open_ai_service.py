@@ -146,18 +146,18 @@ def analyze_image(message_to_ai):
     prompt = message_to_ai.content.strip()
     logging.info(f"Prompt before: {prompt}")
     user_id_pattern = re.compile(r'<@!?1318180349473325137>')  # Remove bot ID
-    cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
+    prompt = user_id_pattern.sub('', message_to_ai.content.strip())
     if not prompt:
         prompt = (
             f"Zabawnie interpretuj zdjecie. Badz sarkastyczny, złośliwy. Maks 2 zdania.")
-    logging.info(f"Prompt after: {cleaned_content}")
+    logging.info(f"Prompt after: {prompt}")
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": cleaned_content},
+                    {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
                         "image_url": {"url": f"{image_url}"},
