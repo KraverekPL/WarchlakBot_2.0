@@ -68,7 +68,7 @@ async def get_messages_with_chat_history(message_to_ai):
         messages.extend(await get_history_messages(message_to_ai, limit))
 
     # Add current prompt
-    messages.append({"role": "user", "content": cleaned_content, "name": messages.author.display_name})
+    messages.append({"role": "user", "content": cleaned_content, "name": message_to_ai.author.display_name})
     return messages
 
 
