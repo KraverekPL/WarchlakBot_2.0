@@ -68,7 +68,7 @@ async def get_messages_with_chat_history(message_to_ai):
         messages.extend(await get_history_messages(message_to_ai, limit))
 
     # Add current prompt
-    messages.append({"role": "user", "content": cleaned_content})
+    messages.append({"role": "user", "content": cleaned_content, "name": messages.author.display_name})
     return messages
 
 
@@ -82,7 +82,8 @@ async def get_history_messages(message_to_ai, limit):
             role = "assistant" if msg.author.bot else "user"
             history_messages.append({
                 "role": role,
-                "content": msg.content.strip()
+                "content": msg.content.strip(),
+                "name": msg.author.display_name
             })
             logging.info(f"History append: {msg.author.display_name}: {msg.content.strip()}")
     except Exception as e:
@@ -146,7 +147,7 @@ def analyze_image(message_to_ai):
     logging.info(f"Prompt before: {prompt}")
     if not prompt:
         prompt = (
-            f"Zabawnie interpretuj zdjecie. Badz sarkastyczny, złośliwy. Opisuj i nawiazuj do Śląska. Maksymalnie 3 zdania.")
+            f"Zabawnie interpretuj zdjecie. Badz sarkastyczny, złośliwy. Maks 2 zdania.")
     logging.info(f"Prompt after: {prompt}")
     response = client.chat.completions.create(
         model="gpt-4o-mini",

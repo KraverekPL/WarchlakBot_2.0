@@ -59,7 +59,7 @@ async def return_response_for_attachment():
 
 async def get_reaction_for_random_message(self, message):
     magic_random = random.random()
-    if magic_random < 0.05:
+    if magic_random < 0.085:
         response = await small_talk_with_gpt(message)
         logging.info(f"Response from OpenAi with chance:{magic_random}, with msg: {message.content.strip()}:{response}")
         await message.channel.send(content=response)
