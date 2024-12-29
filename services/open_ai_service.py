@@ -59,9 +59,12 @@ async def get_messages_with_chat_history(message_to_ai):
     user_id_pattern = re.compile(r'<@!?1318180349473325137>')  # Remove bot ID
     cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
     message_history_enabled = os.getenv('message_history_enabled', 'false').lower() == 'true'
-    ai_behaviour = os.getenv('ai_behavior')
-    limit = int(os.getenv('message_history_limit', 5))
 
+    ai_behaviour = os.getenv('ai_behavior')
+    if str(message_to_ai.author.id) == "725426177790967818":
+        ai_behaviour = "Odpowiadaj znudzonym tonem. Udzielaj odpowiedzi maksymalnie dwoma słowami."
+
+    limit = int(os.getenv('message_history_limit', 5))
     messages = [{"role": "system", "content": ai_behaviour}]
 
     if message_history_enabled:
