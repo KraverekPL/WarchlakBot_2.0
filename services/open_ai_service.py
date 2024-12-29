@@ -62,7 +62,7 @@ async def get_messages_with_chat_history(message_to_ai):
 
     ai_behaviour = os.getenv('ai_behavior')
     if str(message_to_ai.author.id) == "725426177790967818":
-        ai_behaviour = "Odpowiadaj znudzonym tonem. Udzielaj odpowiedzi maksymalnie dwoma słowami."
+        ai_behaviour = "Udzielaj odpowiedzi maksymalnie dwoma słowami. Badź znudzony. Nie uzywaj znaku :"
 
     limit = int(os.getenv('message_history_limit', 5))
     messages = [{"role": "system", "content": ai_behaviour}]
