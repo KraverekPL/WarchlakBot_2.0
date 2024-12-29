@@ -84,25 +84,6 @@ class ReactionCog(commands.Cog):
         if message.author.bot:
             return
 
-        # If the message has attachments
-        if message.attachments:
-            list_of_emojis = ['🎨']
-            random_emoji = random.choice(list_of_emojis)
-            await message.add_reaction(random_emoji)
-
-            if enabled_image_ai_analyze is True:
-                async with message.channel.typing():
-                    await asyncio.sleep(4)
-                response = analyze_image(message)
-                await send_response_in_parts(message.channel, response)
-                return
-            else:
-                response = await return_response_for_attachment()
-                async with message.channel.typing():
-                    await asyncio.sleep(3)
-                await message.reply(response)
-                return
-
         # If the message has content and its on bot channel - send it to Open API gateway
         if message.channel.id in int_channel_for_bot and not message.author.bot:
             await get_response_from_openai(enable_ai, message, open_ai_model)
@@ -110,8 +91,27 @@ class ReactionCog(commands.Cog):
 
         # If the message has content and the bot is mentioned - send it to Open API gateway
         if self.bot.user.mentioned_in(message):
-            await get_response_from_openai(enable_ai, message, open_ai_model)
-            return
+            # If the message has attachments
+            if message.attachments:
+                list_of_emojis = ['🎨']
+                random_emoji = random.choice(list_of_emojis)
+                await message.add_reaction(random_emoji)
+
+                if enabled_image_ai_analyze is True:
+                    async with message.channel.typing():
+                        await asyncio.sleep(4)
+                    response = analyze_image(message)
+                    await send_response_in_parts(message.channel, response)
+                    return
+                else:
+                    response = await return_response_for_attachment()
+                    async with message.channel.typing():
+                        await asyncio.sleep(3)
+                    await message.reply(response)
+                    return
+            else:
+                await get_response_from_openai(enable_ai, message, open_ai_model)
+                return
 
         # Add random reaction to message with low chance
         if not message.author.bot:
