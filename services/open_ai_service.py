@@ -56,7 +56,7 @@ async def get_messages_with_chat_history_for_small_talk(message_to_ai):
 
 
 async def get_messages_with_chat_history(message_to_ai):
-    user_id_pattern = re.compile(r'<@!?1318180349473325137>')  # Remove bot ID
+    user_id_pattern = re.compile(r'<@!?1318180349473325137>')
     cleaned_content = user_id_pattern.sub('', message_to_ai.content.strip())
     message_history_enabled = os.getenv('message_history_enabled', 'false').lower() == 'true'
 
