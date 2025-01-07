@@ -62,7 +62,7 @@ async def get_messages_with_chat_history(message_to_ai):
 
     ai_behaviour = os.getenv('ai_behavior')
     if str(message_to_ai.author.id) == "725426177790967818":
-        ai_behaviour = "Udzielaj odpowiedzi maksymalnie jednym krótkim zdaniem. Badź znudzony, zirytowany. Nie uzywaj znaku :"
+        ai_behaviour = "Udzielaj odpowiedzi maksymalnie jednym krótkim zdaniem. Badź podniecony. Nie uzywaj znaku :"
 
     limit = int(os.getenv('message_history_limit', 5))
     messages = [{"role": "system", "content": ai_behaviour}]
@@ -71,8 +71,13 @@ async def get_messages_with_chat_history(message_to_ai):
         messages.extend(await get_history_messages(message_to_ai, limit))
 
     # Add current prompt
-    messages.append({"role": "user", "content": cleaned_content, "name": message_to_ai.author.display_name})
+    messages.append({"role": "user", "content": cleaned_content, "name": sanitize_name(message_to_ai.author.display_name)})
     return messages
+
+
+def sanitize_name(name):
+    sanitized_name = re.sub(r'[^a-zA-Z0-9_-]', '_', name)
+    return sanitized_name
 
 
 async def get_history_messages(message_to_ai, limit):
@@ -86,7 +91,7 @@ async def get_history_messages(message_to_ai, limit):
             history_messages.append({
                 "role": role,
                 "content": msg.content.strip(),
-                "name": msg.author.display_name
+                "name": sanitize_name(msg.author.display_name)
             })
             logging.info(f"History append: {msg.author.display_name}: {msg.content.strip()}")
     except Exception as e:
